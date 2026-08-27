@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: fruit-nursery-postgres
+    environment:
+      POSTGRES_DB: fruit_nursery_erp
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - erp-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: fruit-nursery-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - erp-network
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: fruit-nursery-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@fruiitnerseryyerp.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "5050:80"
+    networks:
+      - erp-network
+    depends_on:
+      - postgres
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    container_name: fruit-nursery-api
+    environment:
+      NODE_ENV: development
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: fruit_nursery_erp
+      DB_USER: postgres
+      DB_PASSWORD: postgres123
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - erp-network
+    volumes:
+      - ./src:/app/src
+      - ./node_modules:/app/node_modules
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  erp-network:
+    driver: bridge
